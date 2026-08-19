@@ -5,7 +5,7 @@ Fork of [steviegt6/LibDeflate.Native](https://github.com/steviegt6/LibDeflate.Na
 
 ## How a release is made
 
-1. Open Actions → **Release** → Run workflow. Enter the upstream tag (for example `v1.25`).
+1. Open Actions → **Release** → Run workflow. Enter the package version (for example `1.0.0`) and the libdeflate upstream tag (for example `v1.25`).
 2. The workflow builds the shared library from that tag for every RID below, packs `McProtoNet.Native.<version>.nupkg`, and creates a GitHub release `v<version>` with one zip per RID, the nupkg, and `SHA256SUMS.txt`.
 
 The package is not pushed to nuget.org. Consume it from the release assets or a local feed.

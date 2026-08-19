@@ -3,15 +3,14 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Package version (for example 1.0.0)'
+        required: true
+        type: string
       tag:
         description: 'libdeflate upstream tag (for example v1.25)'
         required: true
         type: string
-      suffix:
-        description: 'Optional package version suffix (for example .1 or -preview1)'
-        required: false
-        type: string
-        default: ''
 
 env:
   CMAKE_FLAGS: >-
@@ -198,16 +197,11 @@ jobs:
             (cd "$d" && zip -q "../../zips/$rid.zip" libdeflate.*)
           done
           ls -R package-contents/runtimes
-      - name: Compute package version
-        id: ver
-        run: |
-          tag='${{ inputs.tag }}'
-          echo "version=${tag#v}${{ inputs.suffix }}" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       - name: Pack
-        run: dotnet pack -c Release -o pkg -p:PackageVersion=${{ steps.ver.outputs.version }}
+        run: dotnet pack -c Release -o pkg -p:PackageVersion=${{ inputs.version }}
       - name: Checksums
         run: |
           (cd zips && sha256sum *.zip) > SHA256SUMS.txt
