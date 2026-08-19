@@ -211,7 +211,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          v='${{ steps.ver.outputs.version }}'
-          gh release create "v$v" zips/*.zip pkg/*.nupkg SHA256SUMS.txt \
-            --title "v$v" \
-            --notes "libdeflate ${{ inputs.tag }} native binaries. Upstream: https://github.com/ebiggers/libdeflate/releases/tag/${{ inputs.tag }}"
+          v='${{ inputs.version }}'
+          gh release create "v$v" zips/*.zip pkg/*.nupkg SHA256SUMS.txt             --title "v$v"             --notes "McProtoNet.Native $v. Contents: libdeflate ${{ inputs.tag }} (https://github.com/ebiggers/libdeflate/releases/tag/${{ inputs.tag }})."
