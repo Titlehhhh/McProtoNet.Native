@@ -1,0 +1,223 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'libdeflate upstream tag (for example v1.25)'
+        required: true
+        type: string
+      suffix:
+        description: 'Optional package version suffix (for example .1 or -preview1)'
+        required: false
+        type: string
+        default: ''
+
+env:
+  CMAKE_FLAGS: >-
+    -DCMAKE_BUILD_TYPE=Release
+    -DLIBDEFLATE_BUILD_STATIC_LIB=0
+    -DLIBDEFLATE_BUILD_SHARED_LIB=1
+    -DLIBDEFLATE_BUILD_GZIP=0
+    -DLIBDEFLATE_BUILD_TESTS=0
+    -DLIBDEFLATE_COMPRESSION_SUPPORT=1
+    -DLIBDEFLATE_DECOMPRESSION_SUPPORT=1
+    -DLIBDEFLATE_ZLIB_SUPPORT=1
+    -DLIBDEFLATE_GZIP_SUPPORT=1
+
+jobs:
+  linux-x64:
+    name: linux-x64 (glibc)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ebiggers/libdeflate
+          ref: ${{ inputs.tag }}
+      - run: |
+          cmake -B build $CMAKE_FLAGS
+          cmake --build build
+          mkdir -p out && cp -L build/libdeflate.so out/libdeflate.so
+          objdump -T out/libdeflate.so | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: out/libdeflate.so
+          if-no-files-found: error
+
+  linux-musl-x64:
+    name: linux-musl-x64 (Alpine)
+    runs-on: ubuntu-latest
+    container: alpine:3.20
+    steps:
+      - run: apk add --no-cache build-base cmake git
+      - uses: actions/checkout@v4
+        with:
+          repository: ebiggers/libdeflate
+          ref: ${{ inputs.tag }}
+      - run: |
+          cmake -B build $CMAKE_FLAGS
+          cmake --build build
+          mkdir -p out && cp -L build/libdeflate.so out/libdeflate.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-musl-x64
+          path: out/libdeflate.so
+          if-no-files-found: error
+
+  linux-arm:
+    name: ${{ matrix.rid }} (${{ matrix.distro }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: aarch64, distro: bullseye,      rid: linux-arm64 }
+          - { arch: armv7,   distro: bullseye,      rid: linux-arm }
+          - { arch: armv6,   distro: bullseye,      rid: linux-armv6 }
+          - { arch: aarch64, distro: alpine_latest, rid: linux-musl-arm64 }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ebiggers/libdeflate
+          ref: ${{ inputs.tag }}
+      - uses: uraimo/run-on-arch-action@v3
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+          githubToken: ${{ github.token }}
+          setup: mkdir -p "${PWD}/out"
+          dockerRunArgs: --volume "${PWD}/out:/out"
+          env: |
+            CMAKE_FLAGS: ${{ env.CMAKE_FLAGS }}
+          install: |
+            case "${{ matrix.distro }}" in
+              alpine*) apk add --no-cache build-base cmake ;;
+              *) apt-get update && apt-get install -y build-essential cmake ;;
+            esac
+          run: |
+            cmake -B build $CMAKE_FLAGS
+            cmake --build build
+            cp -L build/libdeflate.so /out/libdeflate.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.rid }}
+          path: out/libdeflate.so
+          if-no-files-found: error
+
+  osx:
+    name: osx (universal arm64 + x86_64)
+    runs-on: macos-latest
+    env:
+      CMAKE_OSX_ARCHITECTURES: arm64;x86_64
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ebiggers/libdeflate
+          ref: ${{ inputs.tag }}
+      - run: |
+          cmake -B build $CMAKE_FLAGS
+          cmake --build build
+          mkdir -p out && cp -L build/libdeflate.dylib out/libdeflate.dylib
+          lipo -info out/libdeflate.dylib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osx
+          path: out/libdeflate.dylib
+          if-no-files-found: error
+
+  win-mingw:
+    name: ${{ matrix.rid }} (mingw cross)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x86, toolchain: scripts/toolchain-i686-w64-mingw32.cmake }
+          - { rid: win-x64, toolchain: scripts/toolchain-x86_64-w64-mingw32.cmake }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ebiggers/libdeflate
+          ref: ${{ inputs.tag }}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-i686 gcc-mingw-w64-x86-64
+      - run: |
+          cmake -B build $CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=${{ matrix.toolchain }}
+          cmake --build build
+          mkdir -p out && cp build/libdeflate.dll out/libdeflate.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.rid }}
+          path: out/libdeflate.dll
+          if-no-files-found: error
+
+  win-arm64:
+    name: win-arm64 (MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ebiggers/libdeflate
+          ref: ${{ inputs.tag }}
+      - run: >
+          cmake -B build -G "Visual Studio 17 2022" -A ARM64
+          -DLIBDEFLATE_BUILD_STATIC_LIB=0 -DLIBDEFLATE_BUILD_SHARED_LIB=1
+          -DLIBDEFLATE_BUILD_GZIP=0 -DLIBDEFLATE_BUILD_TESTS=0
+      - run: cmake --build build --config Release
+      - run: |
+          New-Item -ItemType Directory out | Out-Null
+          Copy-Item build/Release/deflate.dll out/libdeflate.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: win-arm64
+          path: out/libdeflate.dll
+          if-no-files-found: error
+
+  release:
+    name: Pack and publish GitHub release
+    needs: [linux-x64, linux-musl-x64, linux-arm, osx, win-mingw, win-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Lay out runtimes and zip per RID
+        run: |
+          set -e
+          mkdir -p package-contents/runtimes zips
+          for d in artifacts/*/ ; do
+            rid=$(basename "$d")
+            mkdir -p "package-contents/runtimes/$rid/native"
+            cp "$d"/libdeflate.* "package-contents/runtimes/$rid/native/"
+            (cd "$d" && zip -q "../../zips/$rid.zip" libdeflate.*)
+          done
+          ls -R package-contents/runtimes
+      - name: Compute package version
+        id: ver
+        run: |
+          tag='${{ inputs.tag }}'
+          echo "version=${tag#v}${{ inputs.suffix }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Pack
+        run: dotnet pack -c Release -o pkg -p:PackageVersion=${{ steps.ver.outputs.version }}
+      - name: Checksums
+        run: |
+          (cd zips && sha256sum *.zip) > SHA256SUMS.txt
+          (cd pkg && sha256sum *.nupkg) >> SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v='${{ steps.ver.outputs.version }}'
+          gh release create "v$v" zips/*.zip pkg/*.nupkg SHA256SUMS.txt \
+            --title "v$v" \
+            --notes "libdeflate ${{ inputs.tag }} native binaries. Upstream: https://github.com/ebiggers/libdeflate/releases/tag/${{ inputs.tag }}"

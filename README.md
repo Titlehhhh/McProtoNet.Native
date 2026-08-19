@@ -1,15 +1,22 @@
-# LibDeflate.Native [![nuget stable](https://img.shields.io/nuget/v/Tomat.LibDeflate.Native.svg?style=flat)](https://www.nuget.org/packages/Tomat.LibDeflate.Native)
+# LibDeflate.Native (McProtoNet fork)
 
-This package is a [LibDeflate.NET](https://github.com/jzebedee/LibDeflate.NET) dependency containing all supported native binaries of [libdeflate](https://github.com/ebiggers/libdeflate).
+Native [libdeflate](https://github.com/ebiggers/libdeflate) binaries for [McProtoNet](https://github.com/Titlehhhh/McProtoNet).
+Fork of [steviegt6/LibDeflate.Native](https://github.com/steviegt6/LibDeflate.Native) (itself a fork of [jzebedee/LibDeflate.Native](https://github.com/jzebedee/LibDeflate.Native)).
+
+## How a release is made
+
+1. Open Actions → **Release** → Run workflow. Enter the upstream tag (for example `v1.25`).
+2. The workflow builds the shared library from that tag for every RID below, packs `McProtoNet.LibDeflate.Native.<version>.nupkg`, and creates a GitHub release `v<version>` with one zip per RID, the nupkg, and `SHA256SUMS.txt`.
+
+The package is not pushed to nuget.org. Consume it from the release assets or a local feed.
 
 ## Platforms
 
-LibDeflate.Native contains prebuilt binaries on the following platforms:
-
-- `win-x64`
-- `win-x86`
-- `linux-x64`
-- `linux-armv6`
-- `linux-arm`
-- `linux-arm64`
-- `osx-11.0` (Universal binary, supports both `osx.11.0-x64` and `osx.11.0-arm64`)
+| RID | Notes |
+| --- | --- |
+| `win-x64`, `win-x86` | MinGW cross build |
+| `win-arm64` | MSVC |
+| `linux-x64` | glibc (Ubuntu 22.04 toolchain) |
+| `linux-arm64`, `linux-arm`, `linux-armv6` | glibc (Debian bullseye) |
+| `linux-musl-x64`, `linux-musl-arm64` | Alpine |
+| `osx` | universal binary: arm64 + x86_64, deployment target 11.0 |
