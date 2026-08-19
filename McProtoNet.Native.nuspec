@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>McProtoNet.Native</id>
+    <version>$PackageVersion$</version>
+    <authors>jzebedee, tomat, Titlehhhh</authors>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/Titlehhhh/McProtoNet.Native</projectUrl>
+    <description>Native binaries for McProtoNet (libdeflate; win, linux glibc/musl, osx universal), built from upstream tags by GitHub Actions.</description>
+    <tags>mcprotonet native libdeflate deflate zlib</tags>
+    <repository type="git" url="https://github.com/Titlehhhh/McProtoNet.Native.git" />
+  </metadata>
+</package>
