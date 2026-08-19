@@ -4,11 +4,13 @@
     <NoBuild>true</NoBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <PackageVersion Condition="'$(PackageVersion)' == ''">0.0.0-local</PackageVersion>
+    <LibdeflateVersion Condition="'$(LibdeflateVersion)' == ''">unknown</LibdeflateVersion>
+    <Commit Condition="'$(Commit)' == ''">0000000000000000000000000000000000000000</Commit>
   </PropertyGroup>
 
   <PropertyGroup>
     <NuspecFile>McProtoNet.Native.nuspec</NuspecFile>
-    <NuspecProperties>PackageVersion=$(PackageVersion)</NuspecProperties>
+    <NuspecProperties>PackageVersion=$(PackageVersion);LibdeflateVersion=$(LibdeflateVersion);Commit=$(Commit)</NuspecProperties>
     <NuspecBasePath>package-contents</NuspecBasePath>
   </PropertyGroup>
 </Project>

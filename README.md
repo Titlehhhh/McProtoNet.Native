@@ -5,10 +5,9 @@ Fork of [steviegt6/LibDeflate.Native](https://github.com/steviegt6/LibDeflate.Na
 
 ## How a release is made
 
-1. Open Actions → **Release** → Run workflow. Enter the package version (for example `1.0.0`) and the libdeflate upstream tag (for example `v1.25`).
-2. The workflow builds the shared library from that tag for every RID below, packs `McProtoNet.Native.<version>.nupkg`, and creates a GitHub release `v<version>` with one zip per RID, the nupkg, and `SHA256SUMS.txt`.
-
-The package is not pushed to nuget.org. Consume it from the release assets or a local feed.
+1. Open Actions → **Release** → Run workflow. Enter the package version (for example `1.0.0`), the libdeflate upstream tag (for example `v1.25`), and tick **publish** only when the package must go to nuget.org.
+2. The workflow builds the shared library from that tag for every RID below, packs `McProtoNet.Native.<version>.nupkg`, validates it, logs in to nuget.org through Trusted Publishing (this step proves the policy works even without a push), and creates or updates the GitHub release `v<version>` with one zip per RID, the nupkg, and `SHA256SUMS.txt`.
+3. With **publish** ticked the same run pushes the nupkg to nuget.org. No API key is stored; the nuget.org Trusted Publishing policy for this repository and `release.yml` issues a short-lived token.
 
 ## Platforms
 

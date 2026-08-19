@@ -11,6 +11,11 @@ on:
         description: 'libdeflate upstream tag (for example v1.25)'
         required: true
         type: string
+      publish:
+        description: 'Push the package to nuget.org (otherwise: build, validate, log in, GitHub release only)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   CMAKE_FLAGS: >-
@@ -176,11 +181,12 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Pack and publish GitHub release
+    name: Pack, validate, GitHub release${{ inputs.publish && ', push to nuget.org' || '' }}
     needs: [linux-x64, linux-musl-x64, linux-arm, osx, win-mingw, win-arm64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -196,20 +202,47 @@ jobs:
             cp "$d"/libdeflate.* "package-contents/runtimes/$rid/native/"
             (cd "$d" && zip -q "../../zips/$rid.zip" libdeflate.*)
           done
-          ls -R package-contents/runtimes
+          cp package-readme.md package-contents/README.md
+          ls -R package-contents
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       - name: Pack
-        run: dotnet pack -c Release -o pkg -p:PackageVersion=${{ inputs.version }}
+        run: >
+          dotnet pack -c Release -o pkg
+          -p:PackageVersion=${{ inputs.version }}
+          -p:LibdeflateVersion=${{ inputs.tag }}
+          -p:Commit=${{ github.sha }}
+      - name: Validate package
+        run: |
+          dotnet tool install -g Meziantou.Framework.NuGetPackageValidation.Tool
+          meziantou.validate-nuget-package pkg/*.nupkg             --excluded-rules IconMustBeSet,XmlDocumentationMustBePresent,Symbols,AssembliesMustBeOptimized
       - name: Checksums
         run: |
           (cd zips && sha256sum *.zip) > SHA256SUMS.txt
           (cd pkg && sha256sum *.nupkg) >> SHA256SUMS.txt
           cat SHA256SUMS.txt
-      - name: Create GitHub release
+      - name: Log in to nuget.org (Trusted Publishing)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: Titlehhhh
+      - name: Push to nuget.org
+        if: ${{ inputs.publish }}
+        run: >
+          dotnet nuget push pkg/*.nupkg
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+      - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           v='${{ inputs.version }}'
-          gh release create "v$v" zips/*.zip pkg/*.nupkg SHA256SUMS.txt             --title "v$v"             --notes "McProtoNet.Native $v. Contents: libdeflate ${{ inputs.tag }} (https://github.com/ebiggers/libdeflate/releases/tag/${{ inputs.tag }})."
+          notes="McProtoNet.Native $v. Contents: libdeflate ${{ inputs.tag }} (https://github.com/ebiggers/libdeflate/releases/tag/${{ inputs.tag }}). nuget.org push: ${{ inputs.publish }}."
+          if gh release view "v$v" >/dev/null 2>&1; then
+            gh release upload "v$v" zips/*.zip pkg/*.nupkg SHA256SUMS.txt --clobber
+            gh release edit "v$v" --notes "$notes"
+          else
+            gh release create "v$v" zips/*.zip pkg/*.nupkg SHA256SUMS.txt --title "v$v" --notes "$notes"
+          fi
