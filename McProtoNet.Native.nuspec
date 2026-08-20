@@ -9,11 +9,12 @@
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <readme>README.md</readme>
+    <icon>icon.png</icon>
     <projectUrl>https://github.com/Titlehhhh/McProtoNet.Native</projectUrl>
     <repository type="git" url="https://github.com/Titlehhhh/McProtoNet.Native.git" branch="main" commit="$Commit$" />
     <description>Prebuilt native libraries for McProtoNet, the .NET Minecraft protocol client. Ships libdeflate $LibdeflateVersion$ as runtimes/{rid}/native for Windows (x64, x86, arm64), Linux glibc (x64, arm64, arm, armv6), Linux musl (x64, arm64) and macOS (universal arm64 + x86_64). No managed code; consumed through P/Invoke with DllImport("libdeflate").</description>
     <releaseNotes>libdeflate $LibdeflateVersion$. Built from the upstream tag by GitHub Actions; checksums are published on the GitHub release.</releaseNotes>
-    <copyright>libdeflate: Copyright Eric Biggers (MIT). Package: Titlehhhh (MIT).</copyright>
+    <copyright>Package: Copyright 2026 © Titlehhhh (MIT). libdeflate: Copyright © Eric Biggers (MIT).</copyright>
     <tags>mcprotonet minecraft native libdeflate deflate zlib gzip compression runtimes win-x64 win-x86 win-arm64 linux-x64 linux-arm64 linux-musl osx</tags>
   </metadata>
 </package>

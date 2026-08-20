@@ -203,6 +203,7 @@ jobs:
             (cd "$d" && zip -q "../../zips/$rid.zip" libdeflate.*)
           done
           cp package-readme.md package-contents/README.md
+          cp icon.png package-contents/icon.png
           ls -R package-contents
       - uses: actions/setup-dotnet@v4
         with:
@@ -216,7 +217,7 @@ jobs:
       - name: Validate package
         run: |
           dotnet tool install -g Meziantou.Framework.NuGetPackageValidation.Tool
-          meziantou.validate-nuget-package pkg/*.nupkg             --excluded-rules IconMustBeSet,XmlDocumentationMustBePresent,Symbols,AssembliesMustBeOptimized
+          meziantou.validate-nuget-package pkg/*.nupkg             --excluded-rules XmlDocumentationMustBePresent,Symbols,AssembliesMustBeOptimized
       - name: Checksums
         run: |
           (cd zips && sha256sum *.zip) > SHA256SUMS.txt
